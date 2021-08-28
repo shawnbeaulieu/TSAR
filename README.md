@@ -1,8 +1,8 @@
 # TSAR
-Tuning Synapses via Allostatic Regulation
+_Tuning Synapses via Allostatic Regulation_
 
-Code for the paper "_Continual learning under domain transfer with sparse synaptic bursting_"
-by Shawn L. Beaulieu, Jeff Clune, and Nick Cheney (in review PNAS)
+Code for the paper "Continual learning under domain transfer with sparse synaptic bursting"
+by Shawn L. Beaulieu, Jeff Clune, and Nick Cheney (in review _PNAS_)
 
 ## Abstract:
 
