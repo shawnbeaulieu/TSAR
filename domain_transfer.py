@@ -33,6 +33,209 @@ def pickle_struct(dictionary, filename):
     p.fast = True 
     p.dump(dictionary) 
 
+
+def Entropy(P, bins):
+
+   try:
+       E = -np.sum(P*np.log2(P)/np.log2(bins), axis=1)
+   except:
+       print("Single Vector")
+       E = -np.sum(P*np.log2(P)/np.log2(bins))
+
+   return(E)
+
+
+def PMI(cooccurrence_matrix, ppmi=False):
+
+    mutual = np.zeros_like(cooccurrence_matrix.astype(float))
+    freq = cooccurrence_matrix/3000
+    for i in range(cooccurrence_matrix.shape[0]):
+        for j in range(cooccurrence_matrix.shape[1]):
+            if i == j:
+                pmi = 0
+            else:
+                x = freq[i,i]
+                y = freq[j,j]
+                xy = freq[i,j]
+                if xy == 0:
+                    pmi = 0
+                else:
+                    pmi = np.log2(xy/(x*y))
+                    norm = -np.log2(xy)
+                    pmi = pmi/norm
+
+                if ppmi:
+                    mutual[i,j] = np.max([pmi, 0])
+                else:
+                    mutual[i,j] = pmi
+
+    return(mutual)
+
+def compute_timelag(signals, bins=250):
+
+    centile = int((112*112*3*3)*0.01)
+    indices = np.argsort(np.mean(signals, axis=0))
+    timelag = np.zeros((bins,bins))
+    for it in range(1,3000):
+        timelag += np.histogram2d(y=signals[it,indices[centile*75:centile*99]], 
+                                  x=signals[it-1,indices[centile*75:centile*99]], 
+                                  range=[[0,1],[0,1]], bins=bins)[0]
+
+    np.save("Timelag_Scarce_75to99_Grow_Layer={0}_Seed={1}_Dataset={2}".format(args.layer_to_record,
+                                                                               args.model_seed, 
+                                                                               args.dataset), 
+                                                                               timelag)
+
+
+def compute_fc_past(functional_weights, weights, task_order):
+
+    signals = []
+    for t in np.arange(0,100,1):
+        w = np.array(weights[task_order[t]])[:,:100,:]
+        fw = np.array(functional_weights[task_order[t]])[:,:100,:]
+        signals.append(fw/w)
+    signals = np.array(signals)
+
+    current_p = []
+    prior_p = []
+    current_n = []
+    prior_n = []
+
+    for t in range(5,95):
+
+        pindices = np.argwhere(w[-1,task_order[t],:] >= 0)
+        nindices = np.argwhere(w[-1,task_order[t],:] < 0)
+
+        current_p.append(list(np.transpose(np.mean(signals[t,:,task_order[t],pindices], axis=0))))
+        prior_p.append(list(np.transpose(np.mean(signals[t-5,:,task_order[t],pindices], axis=0))))
+        current_n.append(list(np.transpose(np.mean(signals[t,:,task_order[t],nindices], axis=0))))
+        prior_n.append(list(np.transpose(np.mean(signals[t-5,:,task_order[t],nindices], axis=0))))
+
+
+    current_n = np.array(current_n).reshape(90,-1)
+    prior_n = np.array(prior_n).reshape(90,-1)
+
+    current_p = np.array(current_p).reshape(90,-1)
+    prior_p = np.array(prior_p).reshape(90,-1)
+
+    current_change_n = ((prior_n[:,-1].reshape(90,1) - current_n)/prior_n[:,-1].reshape(90,1))*100
+    current_change_p = ((prior_p[:,-1].reshape(90,1) - current_p)/prior_p[:,-1].reshape(90,1))*100
+
+    np.save("current_change_n_Seed={0}".format(args.model_seed), current_change_n)
+    np.save("current_change_p_Seed={0}".format(args.model_seed), current_change_p)
+
+def compute_fc_future(functional_weights, weights, task_order):
+
+    signals = []
+    for t in np.arange(0,100,1):
+        w = np.array(weights[task_order[t]])[:,:100,:]
+        fw = np.array(functional_weights[task_order[t]])[:,:100,:]
+        signals.append(fw/w)
+    signals = np.array(signals)
+
+    current_p = []
+    prior_p = []
+    future_p = []
+    current_n = []
+    prior_n = []
+    future_n = []
+    for t in range(10,90):
+        pindices = np.argwhere(w[-1,task_order[t],:] >= 0)
+        nindices = np.argwhere(w[-1,task_order[t],:] < 0)
+        current_p.append(list(np.transpose(np.mean(signals[t,:,task_order[t],pindices], axis=0))))
+        current_n.append(list(np.transpose(np.mean(signals[t,:,task_order[t],nindices], axis=0))))
+        temp_p = []
+        temp_n = []
+        for shift in range(1,11):
+            temp_p.append(list(np.transpose(np.mean(signals[t+shift,:,task_order[t],pindices], axis=0))))
+            temp_n.append(list(np.transpose(np.mean(signals[t+shift,:,task_order[t],nindices], axis=0))))
+        future_p.append(temp_p)
+        future_n.append(temp_n)
+
+    current_n = np.array(current_n).reshape(80,30)
+    future_n = np.array(future_n).reshape(80,300)
+    current_p = np.array(current_p).reshape(80,30)
+    future_p = np.array(future_p).reshape(80,300)
+    future_change_p = ((current_p[:,-1].reshape(80,1) - future_p)/current_p[:,-1].reshape(80,1))*100
+    future_change_n = ((current_n[:,-1].reshape(80,1) - future_n)/current_n[:,-1].reshape(80,1))*100
+
+    np.save("future_change_n_Seed={0}".format(args.model_seed), future_change_n)
+    np.save("future_change_p_Seed={0}".format(args.model_seed), future_change_p)
+
+def compute_rank_rank_histo(signals):
+
+    signals = signals.reshape(100, 30, -1)
+    upper_bound = signals.shape[2]
+    countMatrix = np.zeros((100,100))
+
+    for task in range(100):
+
+        idex = np.array(range(task+1,task+100))%100
+        global_rank = (signals.shape[2] - rankdata(np.mean(signals[idex, :, :].reshape(99*30, -1), axis=0))) + 1
+        local_rank = (signals.shape[2] - rankdata(np.mean(signals[task,:,:], axis=0))) + 1
+        countMatrix += np.histogram2d(x=np.log10(global_rank), 
+                                      y=np.log10(local_rank), 
+                                      bins=100, 
+                                      range=[[0,np.log10(upper_bound)],[0,np.log10(upper_bound)]])
+
+    np.save("TSAR_Scarce_rankrank_Layer={0}_Model={1}_Seed={2}_Dataset={3}.npy".format(args.layer_to_record, args.model_seed, args.seed, args.dataset), countMatrix[0])
+
+def compute_avalanches(signals):
+
+    #c1 = c1.reshape(3000,-1)
+    #c2 = c2.reshape(3000, -1)
+    signals = signals.reshape(3000, -1)
+    for threshold in [0.10, 0.25, 0.50]:
+        #c1_spikes = np.sum((c1 > threshold).astype('uint8'), axis=1)
+        #c2_spikes = np.sum((c2 > threshold).astype('uint8'), axis=1)
+        spikes = np.sum((signals > threshold).astype('uint8'), axis=1)
+        avalanche = spikes #+ c2_spikes + c3_spikes
+        #histo = np.histogram(avalanche, range=(0,(112*112*3*3)*2 + 112*3*3*3), bins=5000)
+        histo = np.histogram(avalanche, range=(0,signals.shape[1]), bins=2200)
+        np.save("Avalanche_Histogram_Layer={0}_Thresh={1}_Run={2}_Dataset={3}_Model={4}".format(args.layer_to_record, threshold, args.seed, args.dataset, args.model_seed), histo)
+
+
+def compute_ppmi(c2, c3, model_seed):
+
+    c2 = c2.reshape(3000,-1)
+    c3 = c3.reshape(3000,-1)
+
+    all_mutual = {}
+    for threshold in [0.10, 0.25, 0.5]:
+        c2_spikes = (c2 > threshold).astype('uint8')
+        c2_firing_rate = np.mean(c2_spikes, axis=0)
+        c2_indices = np.where(c2_firing_rate > 0.01)[0]
+
+        c3_spikes = (c3 > threshold).astype('uint8')
+        c3_firing_rate = np.mean(c3_spikes, axis=0)
+        c3_indices = np.where(c3_firing_rate > 0.01)[0]
+
+        spikes = np.concatenate([c2_spikes[:, c2_indices], c3_spikes[:, c3_indices]], axis=1)
+        cooccurrence_matrix = np.dot(spikes.transpose().astype(int), spikes.astype(int))
+        mutual = np.zeros_like(cooccurrence_matrix.astype(float))
+        freq = cooccurrence_matrix/3000
+
+        for i in range(cooccurrence_matrix.shape[0]):
+            for j in range(cooccurrence_matrix.shape[1]):
+                x = freq[i,i]
+                y = freq[j,j]
+                xy = freq[i,j]
+                if xy == 0:
+                    pmi = 0
+                else:
+                    pmi = np.log2(xy/(x*y))
+                    norm = -1.0*np.log2(xy)
+                    pmi = pmi/norm
+                mutual[i,j] = pmi
+
+        m = np.clip(mutual, 0, 1)
+        c2_to_c3 = m[:c2_indices.shape[0], c2_indices.shape[0]:]
+        #upper_triangle = m[np.triu_indices(m.shape[0], 1)]
+        histo = np.histogram(c2_to_c3, range=(0,np.max(c2_to_c3)), bins=2000)
+        all_mutual[threshold] = histo
+
+    np.save("C2C3_Mutual_Seed={0}".format(model_seed), all_mutual)
+
 def train_omniglot(iterator, model, optimizer, device):
 
     for img, y in iterator:
@@ -50,6 +253,7 @@ def train_imagenet(model, optimizer, imagenetClasses, offset, device, updates, t
 
     history = []
     performance = []
+    signals = []
     counter = 0
     for c in imagenetClasses:
 
@@ -94,7 +298,12 @@ def train_imagenet(model, optimizer, imagenetClasses, offset, device, updates, t
             task_key = y.item()
             img = img.to(device)
             y = y.to(device)
-            pred = model(img, ANML=args.ANML)
+            if args.analysis:
+                pred, fw, w = model(img, analysis=True, layer_to_record=args.layer_to_record)
+                signals.append((fw/w).reshape(1,-1))
+
+            else:
+                pred = model(img, ANML=args.ANML)
             optimizer.zero_grad()
             loss = F.cross_entropy(pred, y)
             loss.backward()
@@ -141,6 +350,10 @@ def train_imagenet(model, optimizer, imagenetClasses, offset, device, updates, t
                                                          updates, 
                                                          train_chosen, 
                                                          test=False))
+
+    if args.analysis:
+        signals = np.array(signals).reshape(3000,-1)
+        compute_avalanches(signals)
 
     return(performance)
 
@@ -599,6 +812,7 @@ if __name__ == '__main__':
     argparser.add_argument('--num_spikes', type=int, help='Number of spikes', default=15)
     argparser.add_argument('--random_before', type=int, help='Number of spikes', default=15)
     argparser.add_argument('--run', type=int, help='run number', default=0)
+    argparser.add_argument('--analysis', action='store_true', default=False)
     argparser.add_argument('--imagenet_condition', type=str,default='random')
     argparser.add_argument('--epochs', type=int, help='epoch number', default=1)
     argparser.add_argument('--seed', type=int, help='epoch number', default=222)
