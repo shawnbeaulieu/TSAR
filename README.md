@@ -19,5 +19,5 @@ Once the model has finished meta-learning, you can evalute its ability to avoid 
 
 > python domain_transfer.py --rln 6 --model TSAR_Rich_Bias=-8.0_Seed --model_seed 999 --num_updates 30 --bias -1.7 --seed 0 --treatment 'Grow' --condition 'Rich' --dataset "imagenet" --imagenet_condition "random"
 
-Data from (truncated) ImageNet must be downloaded separately for domain transfer.
+Data from (truncated) ImageNet must be [downloaded separately](https://github.com/yaoyao-liu/mini-imagenet-tools) for domain transfer.
 
