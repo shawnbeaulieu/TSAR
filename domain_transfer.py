@@ -835,7 +835,6 @@ if __name__ == '__main__':
     argparser.add_argument('--test', action="store_true")
     argparser.add_argument("--iid", action="store_true")
     argparser.add_argument("--rln", type=int, default=6)
-    argparser.add_argument("--runs", type=int, default=50)
     argparser.add_argument("--neuromodulation", action="store_true")
     argparser.add_argument("--bias", type=float, default=0.0)
     argparser.add_argument("--save_name", type=str, default="performance")
