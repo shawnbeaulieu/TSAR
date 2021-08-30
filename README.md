@@ -4,7 +4,7 @@
 ![alt text](Figure_0.png) 
 
 Code for the paper "Continual learning under domain transfer with sparse synaptic bursting"
-by Shawn L. Beaulieu, Jeff Clune, and Nick Cheney (in review _PNAS_)
+by Shawn L. Beaulieu, Jeff Clune, and Nick Cheney
 
 ## Abstract:
 
