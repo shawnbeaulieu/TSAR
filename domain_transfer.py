@@ -182,16 +182,11 @@ def compute_rank_rank_histo(signals):
 
 def compute_avalanches(signals):
 
-    #c1 = c1.reshape(3000,-1)
-    #c2 = c2.reshape(3000, -1)
     signals = signals.reshape(3000, -1)
     for threshold in [0.10, 0.25, 0.50]:
-        #c1_spikes = np.sum((c1 > threshold).astype('uint8'), axis=1)
-        #c2_spikes = np.sum((c2 > threshold).astype('uint8'), axis=1)
         spikes = np.sum((signals > threshold).astype('uint8'), axis=1)
-        avalanche = spikes #+ c2_spikes + c3_spikes
-        #histo = np.histogram(avalanche, range=(0,(112*112*3*3)*2 + 112*3*3*3), bins=5000)
-        histo = np.histogram(avalanche, range=(0,signals.shape[1]), bins=2200)
+        avalanche = spikes
+        histo = np.histogram(avalanche, range=(0, signals.shape[1]), bins=2000)
         np.save("Avalanche_Histogram_Layer={0}_Thresh={1}_Run={2}_Dataset={3}_Model={4}".format(args.layer_to_record, threshold, args.seed, args.dataset, args.model_seed), histo)
 
 
@@ -352,7 +347,13 @@ def train_imagenet(model, optimizer, imagenetClasses, offset, device, updates, t
                                                          test=False))
 
     if args.analysis:
+
         signals = np.array(signals).reshape(3000,-1)
+        counts = np.histogram(np.array(signals).flatten(), range=(0,1+1/1000), bins=1000)
+        np.save("{0}_SignalCounts_Layer={1}_ImageNet_Model={2}".format(args.model, 
+                                                                       args.layer_to_record, 
+                                                                       args.model_seed), 
+                                                                       counts)
         compute_avalanches(signals)
 
     return(performance)
