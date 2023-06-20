@@ -308,7 +308,7 @@ def train_imagenet(model, optimizer, imagenetClasses, offset, device, updates, t
 
         if args.imagenet_condition == 'random':
 
-            if counter in [100]
+            if counter in [100]:
                 if args.test:
                     performance.append(evaluate_imagenet(model, 
                                                          history, 
