@@ -14,7 +14,7 @@ Requests for computation and fully meta-learned models can be addressed to [reda
 
 To launch a meta-learning run of TSAR, use the following command:
 
-> python meta_learning.py --steps 25000 --rln 10 --meta_lr 0.001 --update_lr 0.1 --name mrcl_omniglot --seed 999 --tasks 1 --num_inner_steps 20 --num_classes 963 --bias -8 --channels 112 --nm_channels 192 --nm_rep_size 1728 --rep_size 112 --dataset 'omniglot' --inner_gradients 'first order' --model_name 'TSAR_Rich'
+> python meta_learning.py --steps 25000 --rln 10 --meta_lr 0.001 --update_lr 0.1 --name mrcl_omniglot --seed 999 --tasks 1 --num_inner_steps 20 --num_classes 963 --bias -8 --channels 112 --nm_channels 192 --nm_rep_size 1728 --rep_size 112 --dataset 'omniglot' --inner_gradients 'first_order' --model_name 'TSAR_Rich'
 
 Once the model has finished meta-learning, you can evalute its ability to avoid catastrophic forgetting under domain transfer with the following command:
 
