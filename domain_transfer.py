@@ -775,6 +775,8 @@ def main(args):
                             performance.append(accuracy)
                             accuracy = accuracy[-1]
 
+                    print(performance)
+
                     # ============= RECORD performance =============
 
                     if len(lr_list) == 1:
