@@ -15,6 +15,7 @@ import datasets.datasetfactory as df
 import datasets.miniimagenet as imgnet
 
 from scipy import stats
+from scipy.stats import rankdata
 from torch.nn import functional as F
 from tensorboardX import SummaryWriter
 from experiment.experiment import experiment
